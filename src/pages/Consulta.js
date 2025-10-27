@@ -208,11 +208,6 @@ setMaisSobreProduto(''); // limpa após adicionar
   };
 
   // 📤 Exportar Excel
-// Adicione no estado:
-const [linksDownload, setLinksDownload] = useState([]);
-
-// Modifique o handleExportarExcel para gerar link em vez de baixar:
-
 const handleExportarExcel = async () => {
   if (produtosLidos.length === 0) {
     exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
@@ -258,6 +253,7 @@ const handleExportarExcel = async () => {
     exibirMensagem('❌ Erro ao exportar Excel', 'error');
   }
 };
+
 
 
 
@@ -629,26 +625,6 @@ const handleExportarExcel = async () => {
           </button>
         </div>
       )}
-
-      {linksDownload.length > 0 && (
-  <div style={{ marginTop: 20 }}>
-    <h4>Arquivos disponíveis para download:</h4>
-    <ul>
-      {linksDownload.map((link, index) => (
-        <li key={index} style={{ marginBottom: 6 }}>
-          <a
-            href={link.url}
-            download={link.nomeArquivo}
-            style={{ color: 'blue', textDecoration: 'underline' }}
-          >
-            {link.nomeArquivo}
-          </a>
-        </li>
-      ))}
-    </ul>
-  </div>
-)}
-
     </div>
   );
 }

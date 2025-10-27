@@ -2,8 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 
 
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-
+// import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import XLSX from 'xlsx';
+import RNFS from 'react-native-fs';
+import { Platform, PermissionsAndroid, Alert } from 'react-native';
 
 
 export default function Consulta() {
@@ -213,7 +215,7 @@ setMaisSobreProduto(''); // limpa após adicionar
   // 📤 Exportar Excel
 const handleExportarExcel = async () => {
   if (produtosLidos.length === 0) {
-    exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
+    Alert.alert('Atenção', 'Nenhum produto lido para exportar!');
     return;
   }
 
@@ -231,34 +233,59 @@ const handleExportarExcel = async () => {
     coletadosPorLoja[p.loja] += 1;
   });
 
-  // Preparar lista para exportar
+  // Criar lista para exportar
   const produtosParaExportar = produtosLidos.map((p) => ({
     ...p,
     QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
     QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
   }));
 
+  // Gerar planilha
   const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
+  const wbout = XLSX.write(wb, { type: 'binary', bookType: 'xlsx' });
 
-  // Gerar Excel em base64
-  const excelBase64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+  // Função para converter string em ArrayBuffer
+  const s2ab = (s) => {
+    const buf = new ArrayBuffer(s.length);
+    const view = new Uint8Array(buf);
+    for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xff;
+    return buf;
+  };
 
+  // Caminho do arquivo
+  const fileName = `inventario_${usuarioInfo.nome || 'usuario'}.xlsx`;
+  const path =
+    Platform.OS === 'android'
+      ? `${RNFS.DownloadDirectoryPath}/${fileName}`
+      : `${RNFS.DocumentDirectoryPath}/${fileName}`;
+
+  // Solicitar permissão no Android
+  if (Platform.OS === 'android') {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+      {
+        title: 'Permissão de armazenamento',
+        message: 'O app precisa salvar o arquivo Excel na memória do dispositivo.',
+        buttonNeutral: 'Perguntar depois',
+        buttonNegative: 'Cancelar',
+        buttonPositive: 'OK',
+      }
+    );
+    if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+      Alert.alert('Permissão negada', 'Não foi possível salvar o arquivo.');
+      return;
+    }
+  }
+
+  // Salvar o arquivo
   try {
-    const fileName = `inventario_${usuarioInfo.nome || 'usuario'}.xlsx`;
-
-    await Filesystem.writeFile({
-      path: fileName,
-      data: excelBase64,
-      directory: Directory.Documents,
-      encoding: Encoding.Base64,
-    });
-
-    exibirMensagem(`✅ Excel salvo em Documentos: ${fileName}`, 'success');
-  } catch (err) {
-    console.error(err);
-    exibirMensagem('❌ Erro ao salvar o arquivo no celular!', 'error');
+    await RNFS.writeFile(path, s2ab(wbout), 'ascii');
+    Alert.alert('Sucesso', `Excel exportado em: ${path}`);
+  } catch (error) {
+    console.log(error);
+    Alert.alert('Erro', 'Erro ao salvar o arquivo.');
   }
 };
 

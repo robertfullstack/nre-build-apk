@@ -1,7 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx'; // mantém esta
-import RNFS from 'react-native-fs';
-import { Platform, PermissionsAndroid, Alert } from 'react-native';
 
 
 

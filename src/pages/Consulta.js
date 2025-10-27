@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 
 
 export default function Consulta() {
@@ -211,44 +212,52 @@ setMaisSobreProduto(''); // limpa após adicionar
 const [linksDownload, setLinksDownload] = useState([]);
 
 // Modifique o handleExportarExcel para gerar link em vez de baixar:
-const handleExportarExcel = () => {
+
+const handleExportarExcel = async () => {
   if (produtosLidos.length === 0) {
     exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
     return;
   }
 
-  const quantidadePorLoja = {};
-  produtos.forEach((p) => {
-    if (!quantidadePorLoja[p.loja]) quantidadePorLoja[p.loja] = 0;
-    quantidadePorLoja[p.loja] += 1;
-  });
+  try {
+    const quantidadePorLoja = {};
+    produtos.forEach((p) => {
+      if (!quantidadePorLoja[p.loja]) quantidadePorLoja[p.loja] = 0;
+      quantidadePorLoja[p.loja] += 1;
+    });
 
-  const coletadosPorLoja = {};
-  produtosLidos.forEach((p) => {
-    if (!coletadosPorLoja[p.loja]) coletadosPorLoja[p.loja] = 0;
-    coletadosPorLoja[p.loja] += 1;
-  });
+    const coletadosPorLoja = {};
+    produtosLidos.forEach((p) => {
+      if (!coletadosPorLoja[p.loja]) coletadosPorLoja[p.loja] = 0;
+      coletadosPorLoja[p.loja] += 1;
+    });
 
-  const produtosParaExportar = produtosLidos.map((p) => ({
-    ...p,
-    QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
-    QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
-  }));
+    const produtosParaExportar = produtosLidos.map((p) => ({
+      ...p,
+      QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
+      QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
+    }));
 
-  const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
+    const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
 
-  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
-  const url = URL.createObjectURL(data);
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+    const nomeArquivo = `inventario_${usuarioInfo.nome || 'usuario'}_${Date.now()}.xlsx`;
 
-  const nomeArquivo = `inventario_${usuarioInfo.nome || 'usuario'}_${Date.now()}.xlsx`;
+    await Filesystem.writeFile({
+      path: nomeArquivo,
+      data: excelBuffer,
+      directory: Directory.Documents, // salva em Documentos
+      encoding: Encoding.UTF8,
+    });
 
-  setLinksDownload((prev) => [...prev, { url, nomeArquivo }]);
-  exibirMensagem('✅ Excel pronto para download!', 'success');
+    exibirMensagem('✅ Excel exportado com sucesso para Documentos!', 'success');
+  } catch (error) {
+    console.error('Erro ao exportar Excel:', error);
+    exibirMensagem('❌ Erro ao exportar Excel', 'error');
+  }
 };
-
 
 
 

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
+
 
 export default function Consulta() {
 const [mensagem, setMensagem] = useState('');
@@ -207,31 +207,32 @@ setMaisSobreProduto(''); // limpa após adicionar
   };
 
   // 📤 Exportar Excel
- const handleExportarExcel = () => {
+// Adicione no estado:
+const [linksDownload, setLinksDownload] = useState([]);
+
+// Modifique o handleExportarExcel para gerar link em vez de baixar:
+const handleExportarExcel = () => {
   if (produtosLidos.length === 0) {
     exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
     return;
   }
 
-  // Contagem de produtos por loja na base
   const quantidadePorLoja = {};
   produtos.forEach((p) => {
     if (!quantidadePorLoja[p.loja]) quantidadePorLoja[p.loja] = 0;
     quantidadePorLoja[p.loja] += 1;
   });
 
-  // Contagem de produtos coletados por loja
   const coletadosPorLoja = {};
   produtosLidos.forEach((p) => {
     if (!coletadosPorLoja[p.loja]) coletadosPorLoja[p.loja] = 0;
     coletadosPorLoja[p.loja] += 1;
   });
 
-  // Criar uma cópia da lista de produtos lidos, adicionando as quantidades
   const produtosParaExportar = produtosLidos.map((p) => ({
     ...p,
-    QtdeTotalBase: quantidadePorLoja[p.loja] || 0,      // novo campo
-    QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,     // novo campo
+    QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
+    QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
   }));
 
   const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
@@ -240,10 +241,14 @@ setMaisSobreProduto(''); // limpa após adicionar
 
   const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
   const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(data);
 
-  saveAs(data, `inventario_${usuarioInfo.nome || 'usuario'}.xlsx`);
-  exibirMensagem('✅ Excel exportado com sucesso!', 'success');
+  const nomeArquivo = `inventario_${usuarioInfo.nome || 'usuario'}_${Date.now()}.xlsx`;
+
+  setLinksDownload((prev) => [...prev, { url, nomeArquivo }]);
+  exibirMensagem('✅ Excel pronto para download!', 'success');
 };
+
 
 
 
@@ -615,6 +620,26 @@ setMaisSobreProduto(''); // limpa após adicionar
           </button>
         </div>
       )}
+
+      {linksDownload.length > 0 && (
+  <div style={{ marginTop: 20 }}>
+    <h4>Arquivos disponíveis para download:</h4>
+    <ul>
+      {linksDownload.map((link, index) => (
+        <li key={index} style={{ marginBottom: 6 }}>
+          <a
+            href={link.url}
+            download={link.nomeArquivo}
+            style={{ color: 'blue', textDecoration: 'underline' }}
+          >
+            {link.nomeArquivo}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </div>
+)}
+
     </div>
   );
 }

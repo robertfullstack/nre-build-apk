@@ -2,6 +2,10 @@ import React, { useState, useRef, useEffect } from 'react';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
 
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+
+
+
 export default function Consulta() {
 const [mensagem, setMensagem] = useState('');
 const [tipoMensagem, setTipoMensagem] = useState(''); // success | error | warning
@@ -207,7 +211,7 @@ setMaisSobreProduto(''); // limpa após adicionar
   };
 
   // 📤 Exportar Excel
- const handleExportarExcel = () => {
+const handleExportarExcel = async () => {
   if (produtosLidos.length === 0) {
     exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
     return;
@@ -227,22 +231,35 @@ setMaisSobreProduto(''); // limpa após adicionar
     coletadosPorLoja[p.loja] += 1;
   });
 
-  // Criar uma cópia da lista de produtos lidos, adicionando as quantidades
+  // Preparar lista para exportar
   const produtosParaExportar = produtosLidos.map((p) => ({
     ...p,
-    QtdeTotalBase: quantidadePorLoja[p.loja] || 0,      // novo campo
-    QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,     // novo campo
+    QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
+    QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
   }));
 
   const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
 
-  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
+  // Gerar Excel em base64
+  const excelBase64 = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
 
-  saveAs(data, `inventario_${usuarioInfo.nome || 'usuario'}.xlsx`);
-  exibirMensagem('✅ Excel exportado com sucesso!', 'success');
+  try {
+    const fileName = `inventario_${usuarioInfo.nome || 'usuario'}.xlsx`;
+
+    await Filesystem.writeFile({
+      path: fileName,
+      data: excelBase64,
+      directory: Directory.Documents,
+      encoding: Encoding.Base64,
+    });
+
+    exibirMensagem(`✅ Excel salvo em Documentos: ${fileName}`, 'success');
+  } catch (err) {
+    console.error(err);
+    exibirMensagem('❌ Erro ao salvar o arquivo no celular!', 'error');
+  }
 };
 
 

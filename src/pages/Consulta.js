@@ -210,7 +210,7 @@ setMaisSobreProduto(''); // limpa após adicionar
   // 📤 Exportar Excel
 const handleExportarExcel = async () => {
   if (produtosLidos.length === 0) {
-    Alert.alert('Atenção', 'Nenhum produto lido para exportar!');
+     alert('Atenção', 'Nenhum produto lido para exportar!');
     return;
   }
 
@@ -269,7 +269,7 @@ const handleExportarExcel = async () => {
       }
     );
     if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-      Alert.alert('Permissão negada', 'Não foi possível salvar o arquivo.');
+       alert('Permissão negada', 'Não foi possível salvar o arquivo.');
       return;
     }
   }
@@ -277,10 +277,10 @@ const handleExportarExcel = async () => {
   // Salvar o arquivo
   try {
     await RNFS.writeFile(path, s2ab(wbout), 'ascii');
-    Alert.alert('Sucesso', `Excel exportado em: ${path}`);
+     alert('Sucesso', `Excel exportado em: ${path}`);
   } catch (error) {
     console.log(error);
-    Alert.alert('Erro', 'Erro ao salvar o arquivo.');
+     alert('Erro', 'Erro ao salvar o arquivo.');
   }
 };
 

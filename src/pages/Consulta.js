@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import * as XLSX from 'xlsx'; // mantém esta
+import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
 export default function Consulta() {
-  const [mensagem, setMensagem] = useState('');
-  const [tipoMensagem, setTipoMensagem] = useState(''); // success | error | warning
+const [mensagem, setMensagem] = useState('');
+const [tipoMensagem, setTipoMensagem] = useState(''); // success | error | warning
 
-  const exibirMensagem = (texto, tipo = 'info') => {
-    setMensagem(texto);
-    setTipoMensagem(tipo);
-    setTimeout(() => setMensagem(''), 3000); // limpa após 3s
-  };
+const exibirMensagem = (texto, tipo = 'info') => {
+  setMensagem(texto);
+  setTipoMensagem(tipo);
+  setTimeout(() => setMensagem(''), 3000); // limpa após 3s
+};
 
   const [produtos, setProdutos] = useState([]);
   const [codigoBusca, setCodigoBusca] = useState('');
@@ -19,9 +20,26 @@ export default function Consulta() {
   const [ultimoCodigoLido, setUltimoCodigoLido] = useState('');
   const [usuarioInfo, setUsuarioInfo] = useState({ nome: '', lojaInventariada: '' });
   const [observacao, setObservacao] = useState(''); // 🆕 campo de observação
-  const [setor, setSetor] = useState('');
-  const [maisSobreProduto, setMaisSobreProduto] = useState(''); // 🆕 novo campo
   const inputRef = useRef(null);
+const [setor, setSetor] = useState('');
+
+  const [showPopup, setShowPopup] = useState(false);
+  const [acaoConfirmada, setAcaoConfirmada] = useState(null);
+
+  const exibirPopup = (acao) => {
+    setAcaoConfirmada(() => acao);
+    setShowPopup(true);
+  };
+
+  const handleConfirmarPopup = () => {
+    if (acaoConfirmada) acaoConfirmada();
+    setShowPopup(false);
+  };
+
+  const handleCancelarPopup = () => {
+    setShowPopup(false);
+  };
+const [maisSobreProduto, setMaisSobreProduto] = useState(''); // 🆕 novo campo
 
   // 🔹 Carrega dados do LocalStorage
   useEffect(() => {
@@ -41,7 +59,7 @@ export default function Consulta() {
     const hora = agora.toLocaleTimeString('pt-BR');
     return `${data} ${hora}`;
   };
-
+  
   // 🔹 Salva base e histórico
   useEffect(() => {
     if (produtos.length > 0) {
@@ -58,8 +76,7 @@ export default function Consulta() {
   useEffect(() => {
     localStorage.setItem('usuarioInfo', JSON.stringify(usuarioInfo));
   }, [usuarioInfo]);
-
-  const [showFullScreenWarning, setShowFullScreenWarning] = useState(false);
+const [showFullScreenWarning, setShowFullScreenWarning] = useState(false);
 
   // 🔹 Lê arquivo base
   const handleFileUpload = (event) => {
@@ -97,54 +114,57 @@ export default function Consulta() {
 
   // 🔍 Buscar produto
   const handleBuscar = () => {
-    if (!codigoBusca.trim()) {
-      exibirMensagem('Digite um código de barras!', 'error');
-      return;
-    }
+if (!codigoBusca.trim()) {
+  exibirMensagem('Digite um código de barras!', 'error');
+  return;
+}
 
     const codigo = codigoBusca.trim();
     setUltimoCodigoLido(codigo);
     setObservacao(''); // limpa o campo ao buscar
 
     const produto = produtos.find((p) => p.code === codigo);
-    if (produto) {
-      let status = 'Encontrado';
+if (produto) {
+  let status = 'Encontrado';
 
-      if (
-        usuarioInfo.lojaInventariada.trim() &&
-        produto.loja.trim() !== usuarioInfo.lojaInventariada.trim()
-      ) {
-        status = 'Divergente';
-      }
+  if (
+    usuarioInfo.lojaInventariada.trim() &&
+    produto.loja.trim() !== usuarioInfo.lojaInventariada.trim()
+  ) {
+    status = 'Divergente';
+  }
 
-      setProdutoEncontrado({ ...produto, status });
+  setProdutoEncontrado({ ...produto, status });
 
-      const registro = {
-        nome: usuarioInfo.nome,
-        lojaInventariada: usuarioInfo.lojaInventariada,
-        setor,
-        LojaBanco: produto.loja,
-        code: codigo,
-        DescricaoBanco: produto.descricao,
-        status,
-        observacao: '',
-        datahoraconsultaNewteste: gerarDataHora(),
-        DescricaoManual: maisSobreProduto, // ✅ novo campo
-      };
+  const registro = {
+    nome: usuarioInfo.nome,
+    lojaInventariada: usuarioInfo.lojaInventariada,
+    setor,
+    LojaBanco: produto.loja,
+    code: codigo,
+    DescricaoBanco: produto.descricao,
+    status,
+    observacao: '',
+    datahoraconsultaNewteste: gerarDataHora(),
+      DescricaoManual: maisSobreProduto, // ✅ novo campo
 
-      setProdutosLidos((prev) => {
-        const jaExiste = prev.some((p) => p.code === codigo);
-        if (jaExiste) {
-          setShowFullScreenWarning(true); // cria esse state no seu componente
-          return prev; // não adiciona de novo
-        }
-        const novaLista = [...prev, registro];
-        localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
-        return novaLista;
-      });
-    } else {
-      setProdutoEncontrado(false);
-    }
+  };
+setProdutosLidos((prev) => {
+  const jaExiste = prev.some((p) => p.code === codigo);
+  if (jaExiste) {
+    // ⚠️ Mostrar modal em tela cheia
+    setShowFullScreenWarning(true); // cria esse state no seu componente
+
+    return prev; // não adiciona de novo
+  }
+  const novaLista = [...prev, registro];
+  localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
+  return novaLista;
+});
+} else {
+  setProdutoEncontrado(false);
+}
+
 
     setCodigoBusca('');
     inputRef.current.focus();
@@ -153,23 +173,25 @@ export default function Consulta() {
   // ➕ Adicionar produto não encontrado
   const handleAdicionarNaoEncontrado = () => {
     if (!novoProduto.loja.trim() || !novoProduto.descricao.trim()) {
-      exibirMensagem('⚠️ Preencha os campos de loja e descrição!', 'warning');
+    exibirMensagem('⚠️ Preencha os campos de loja e descrição!', 'warning');
+
       return;
     }
 
-    const registro = {
-      nome: usuarioInfo.nome,
-      lojaInventariada: usuarioInfo.lojaInventariada,
-      setor,
-      LojaBanco: novoProduto.loja,
-      code: ultimoCodigoLido || codigoBusca.trim(),
-      DescricaoBanco: novoProduto.descricao,
-      status: 'Não encontrado',
-      observacao: observacao,
-      DescricaoManual: maisSobreProduto,
-      datahoraconsultaNewteste: gerarDataHora(),
-    };
-    setMaisSobreProduto(''); // limpa após adicionar
+ const registro = {
+  nome: usuarioInfo.nome,
+  lojaInventariada: usuarioInfo.lojaInventariada,
+  setor, // 🆕 adiciona o setor
+  LojaBanco: novoProduto.loja,
+  code: ultimoCodigoLido || codigoBusca.trim(),
+  DescricaoBanco: novoProduto.descricao,
+  status: 'Não encontrado',
+  observacao: observacao,
+    DescricaoManual: maisSobreProduto, // ✅ novo campo
+  datahoraconsultaNewteste: gerarDataHora(),
+};
+setMaisSobreProduto(''); // limpa após adicionar
+
 
     setProdutosLidos((prev) => {
       const novaLista = [...prev, registro];
@@ -185,23 +207,45 @@ export default function Consulta() {
   };
 
   // 📤 Exportar Excel
-  const handleExportarExcel = async () => {
-    if (produtosLidos.length === 0) {
-      alert('Nenhum produto lido para exportar!');
-      return;
-    }
+ const handleExportarExcel = () => {
+  if (produtosLidos.length === 0) {
+    exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
+    return;
+  }
 
-    const produtosParaExportar = produtosLidos.map((p) => ({
-      ...p,
-      QtdeTotalBase: produtos.filter((x) => x.loja === p.loja).length,
-      QtdeTotalColetada: produtosLidos.filter((x) => x.loja === p.loja).length,
-    }));
+  // Contagem de produtos por loja na base
+  const quantidadePorLoja = {};
+  produtos.forEach((p) => {
+    if (!quantidadePorLoja[p.loja]) quantidadePorLoja[p.loja] = 0;
+    quantidadePorLoja[p.loja] += 1;
+  });
 
-    const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
-    XLSX.writeFile(wb, `inventario_${usuarioInfo.nome || 'usuario'}.xlsx`);
-  };
+  // Contagem de produtos coletados por loja
+  const coletadosPorLoja = {};
+  produtosLidos.forEach((p) => {
+    if (!coletadosPorLoja[p.loja]) coletadosPorLoja[p.loja] = 0;
+    coletadosPorLoja[p.loja] += 1;
+  });
+
+  // Criar uma cópia da lista de produtos lidos, adicionando as quantidades
+  const produtosParaExportar = produtosLidos.map((p) => ({
+    ...p,
+    QtdeTotalBase: quantidadePorLoja[p.loja] || 0,      // novo campo
+    QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,     // novo campo
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
+
+  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
+
+  saveAs(data, `inventario_${usuarioInfo.nome || 'usuario'}.xlsx`);
+  exibirMensagem('✅ Excel exportado com sucesso!', 'success');
+};
+
+
 
   // 🧹 Limpar tudo
   const limparBase = () => {
@@ -225,29 +269,48 @@ export default function Consulta() {
       localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
       return novaLista;
     });
-    exibirMensagem('📝 Observação salva com sucesso!', 'success');
+  exibirMensagem('📝 Observação salva com sucesso!', 'success');
+
   };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40, textAlign: 'center' }}>
       <h2>Sistema de Consulta de Produto</h2>
-      {mensagem && (
-        <div
-          style={{
-            marginTop: 10,
-            padding: '10px 20px',
-            borderRadius: '6px',
-            color: tipoMensagem === 'success' ? '#155724' : tipoMensagem === 'error' ? '#721c24' : '#856404',
-            backgroundColor: tipoMensagem === 'success' ? '#d4edda' : tipoMensagem === 'error' ? '#f8d7da' : '#fff3cd',
-            border: tipoMensagem === 'success' ? '1px solid #c3e6cb' : tipoMensagem === 'error' ? '1px solid #f5c6cb' : '1px solid #ffeeba',
-            transition: '0.3s ease',
-            textAlign: 'center',
-            maxWidth: 400,
-          }}
-        >
-          {mensagem}
-        </div>
-      )}
+{mensagem && (
+  <div
+    style={{
+      marginTop: 10,
+      padding: '10px 20px',
+      borderRadius: '6px',
+      color:
+        tipoMensagem === 'success'
+          ? '#155724'
+          : tipoMensagem === 'error'
+          ? '#721c24'
+          : '#856404',
+      backgroundColor:
+        tipoMensagem === 'success'
+          ? '#d4edda'
+          : tipoMensagem === 'error'
+          ? '#f8d7da'
+          : '#fff3cd',
+      border:
+        tipoMensagem === 'success'
+          ? '1px solid #c3e6cb'
+          : tipoMensagem === 'error'
+          ? '1px solid #f5c6cb'
+          : '1px solid #ffeeba',
+      transition: '0.3s ease',
+      textAlign: 'center',
+      maxWidth: 400,
+    }}
+  >
+    {mensagem}
+  </div>
+)}
+
+{/* EYELASY, MESSY, HEAD */}
+
 
       <input type="file" accept=".txt,.csv" onChange={handleFileUpload} />
       <p>Formato: <b>loja;code;descrição</b></p>
@@ -274,15 +337,16 @@ export default function Consulta() {
             style={{ margin: 5, padding: 8, borderRadius: 5, border: '1px solid #aaa' }}
           />
           <input
-            type="number"
-            placeholder="Setor"
-            value={setor}
-            onChange={(e) => setSetor(e.target.value)}
-            style={{ margin: 5, padding: 8, borderRadius: 5, border: '1px solid #aaa', width: '120px' }}
-          />
+  type="number"
+  placeholder="Setor"
+  value={setor}
+  onChange={(e) => setSetor(e.target.value)}
+  style={{ margin: 5, padding: 8, borderRadius: 5, border: '1px solid #aaa', width: '120px' }}
+/>
+
         </div>
       )}
-
+ 
       <div style={{ marginTop: 20 }}>
         <input
           ref={inputRef}
@@ -301,13 +365,256 @@ export default function Consulta() {
             marginRight: '10px',
           }}
         />
-        <button style={{ margin: '10px' }} onClick={handleBuscar}>
+        <button style={{margin: '10px'}}
+          onClick={handleBuscar}
+        >
           Consultar
         </button>
-        <button onClick={limparBase}>
+        <button
+          onClick={() => exibirPopup(limparBase)}
+         
+        >
           Limpar Base
         </button>
       </div>
+
+      {/* Resultado da busca */}
+      {produtoEncontrado && produtoEncontrado !== false && (
+        <div
+          style={{
+            marginTop: 20,
+            padding: 10,
+            borderRadius: 5,
+            maxWidth: 400,
+            backgroundColor:
+              produtoEncontrado.status === 'Divergente'
+                ? '#fff3cd'
+                : '#d4edda',
+          }}
+        >
+          <p><strong>Loja:</strong> {produtoEncontrado.loja}</p>
+          <p><strong>Código:</strong> {produtoEncontrado.code}</p>
+          <p><strong>Descrição:</strong> {produtoEncontrado.descricao}</p>
+          <p>
+            <strong>Status:</strong>{' '}
+            {produtoEncontrado.status === 'Divergente'
+              ? '⚠️ Divergente'
+              : '✅ Encontrado'}
+          </p>
+
+          {/* 📝 Campo de observação */}
+          <div style={{ marginTop: 10 }}>
+            <textarea
+              placeholder="Observações..."
+              value={observacao}
+              onChange={(e) => setObservacao(e.target.value)}
+              style={{
+                width: '100%',
+                minHeight: 60,
+                padding: 8,
+                borderRadius: 5,
+                border: '1px solid #ccc',
+              }}
+            />
+            <button
+              onClick={handleSalvarObservacao}
+              style={{
+                marginTop: 15,
+          
+              }}
+            >
+              Salvar Observação
+            </button>
+
+{/* 📝 Campo de "Mais sobre o produto" */}
+<textarea
+  placeholder="Mais sobre o produto..."
+  value={maisSobreProduto}
+  onChange={(e) => setMaisSobreProduto(e.target.value)}
+  style={{
+    display: 'block',
+    width: '100%',
+    marginTop: 8,
+    minHeight: 60,
+    padding: 8,
+    borderRadius: 5,
+    border: '1px solid #ccc',
+  }}
+/>
+<button
+  onClick={() => {
+    if (!produtoEncontrado) return;
+    const codigo = produtoEncontrado.code || ultimoCodigoLido;
+    setProdutosLidos((prev) => {
+      const novaLista = prev.map((p) =>
+        p.code === codigo ? { ...p, maisSobreProduto } : p
+      );
+      localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
+      return novaLista;
+    });
+    exibirMensagem('📝 Campo "Mais sobre o produto" salvo com sucesso!', 'success');
+  }}
+  style={{
+    marginTop: 15,
+
+  }}
+>
+  Salvar Descrição
+</button>
+
+
+          </div>
+        </div>
+      )}
+
+      {produtoEncontrado === false && (
+        <div style={{ marginTop: 20, padding: 10, backgroundColor: '#ffe6e6', borderRadius: 5 }}>
+          <p><strong>Código:</strong> {ultimoCodigoLido}</p>
+          <p style={{ color: 'red' }}>❌ Não encontrado</p>
+          <input
+            type="text"
+            placeholder="Número da loja"
+            value={novoProduto.loja}
+            onChange={(e) => setNovoProduto({ ...novoProduto, loja: e.target.value })}
+            style={{ padding: 6, marginRight: 5 }}
+          />
+          <input
+            type="text"
+            placeholder="Descrição do produto"
+            value={novoProduto.descricao}
+            onChange={(e) => setNovoProduto({ ...novoProduto, descricao: e.target.value })}
+            style={{ padding: 6, marginRight: 5 }}
+          />
+          <textarea
+            placeholder="Observações..."
+            value={observacao}
+            onChange={(e) => setObservacao(e.target.value)}
+            style={{
+              display: 'block',
+              width: '100%',
+              marginTop: 8,
+              minHeight: 60,
+              padding: 8,
+              borderRadius: 5,
+              border: '1px solid #ccc',
+            }}
+          />
+          <button
+            onClick={handleAdicionarNaoEncontrado}
+            style={{
+              marginTop: 8,
+              padding: '6px 12px',
+              backgroundColor: 'orange',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+            }}
+          >
+            Adicionar
+          </button>
+        </div>
+      )}
+ {showPopup && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              padding: 20,
+              borderRadius: 10,
+              minWidth: 300,
+              textAlign: 'center',
+            }}
+          >
+            <p>Tem certeza que deseja continuar?</p>
+            <button
+              onClick={handleConfirmarPopup}
+              style={{ marginRight: 10, padding: '6px 12px', borderRadius: 5 }}
+            >
+              Sim
+            </button>
+            <button
+              onClick={handleCancelarPopup}
+              style={{ padding: '6px 12px', borderRadius: 5 }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+{showFullScreenWarning && (
+  <div
+    style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+           backgroundColor: 'rgba(255, 0, 0, 0.85)', // vermelho com transparência
+
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+      color: 'white',
+      fontSize: '24px',
+      textAlign: 'center',
+      padding: 20,
+    }}
+  >
+    <div>
+      Produto já Coletado!
+      <br /><br />
+      <button
+        onClick={() => setShowFullScreenWarning(false)}
+        style={{
+          padding: '10px 20px',
+          fontSize: 18,
+          borderRadius: 5,
+          border: 'none',
+          cursor: 'pointer',
+          backgroundColor: '#ffc107',
+          color: '#000',
+        }}
+      >
+        OK
+      </button>
+    </div>
+  </div>
+)}
+
+      {produtosLidos.length > 0 && (
+        <div style={{ marginTop: 40, textAlign: 'center' }}>
+          <h3> {produtosLidos.length} produto(s) analisado(s)</h3>
+          <button
+            onClick={handleExportarExcel}
+            style={{
+              padding: '10px 20px',
+              fontSize: '16px',
+              borderRadius: '5px',
+              color: 'white',
+              border: 'none',
+              cursor: 'pointer',
+              marginBottom: '10px'
+            }}
+          >
+            Exportar Excel
+          </button>
+        </div>
+      )}
     </div>
   );
 }

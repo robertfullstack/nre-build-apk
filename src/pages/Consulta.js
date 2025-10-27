@@ -1,11 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
-import * as XLSX from 'xlsx';
-
-
-// import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import XLSX from 'xlsx';
+import * as XLSX from 'xlsx'; // mantém esta
 import RNFS from 'react-native-fs';
 import { Platform, PermissionsAndroid, Alert } from 'react-native';
+
 
 
 export default function Consulta() {

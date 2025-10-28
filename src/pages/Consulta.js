@@ -11,6 +11,8 @@ import { Dialog } from '@capacitor/dialog';
 
 
 
+import { Permissions } from '@capacitor/permissions';
+
 export default function Consulta() {
 const [mensagem, setMensagem] = useState('');
 const [tipoMensagem, setTipoMensagem] = useState(''); // success | error | warning
@@ -222,6 +224,16 @@ const handleExportarExcel = async () => {
     return;
   }
 
+  // 🔒 Solicita permissão de armazenamento antes de salvar
+  const permissao = await Permissions.request({ name: 'storage' });
+  if (permissao.state !== 'granted') {
+    await Dialog.alert({
+      title: 'Permissão necessária',
+      message: 'O app precisa de permissão para salvar o arquivo Excel.',
+    });
+    return;
+  }
+
   try {
     // Organiza dados
     const quantidadePorLoja = {};
@@ -251,13 +263,24 @@ const handleExportarExcel = async () => {
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
     const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.xlsx`;
 
-    // Tenta salvar no armazenamento externo
-    await Filesystem.writeFile({
-      path: nomeArquivo,
-      data: excelBuffer,
-      directory: Directory.Documents,
-      encoding: Encoding.UTF8,
-    });
+    try {
+      // 🗂️ Tenta salvar no diretório público (Documents)
+      await Filesystem.writeFile({
+        path: nomeArquivo,
+        data: excelBuffer,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8,
+      });
+    } catch (err) {
+      console.warn('Erro ao salvar em Documents:', err.message);
+      // 📂 Se falhar, salva no diretório interno do app
+      await Filesystem.writeFile({
+        path: nomeArquivo,
+        data: excelBuffer,
+        directory: Directory.Data,
+        encoding: Encoding.UTF8,
+      });
+    }
 
     await Dialog.alert({
       title: 'Sucesso ✅',

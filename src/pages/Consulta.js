@@ -232,6 +232,79 @@ async function pedirPermissaoEscrita() {
   return true;
 }
 
+const handleExportarCSV = async () => {
+  if (produtosLidos.length === 0) {
+    exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
+    return;
+  }
+
+  const temPermissao = await pedirPermissaoEscrita();
+  if (!temPermissao) {
+    await Dialog.alert({
+      title: 'Permissão negada',
+      message: 'Não foi possível salvar o arquivo sem permissão.',
+    });
+    return;
+  }
+
+  try {
+    // Organiza dados
+    const quantidadePorLoja = {};
+    produtos.forEach((p) => {
+      if (!quantidadePorLoja[p.loja]) quantidadePorLoja[p.loja] = 0;
+      quantidadePorLoja[p.loja] += 1;
+    });
+
+    const coletadosPorLoja = {};
+    produtosLidos.forEach((p) => {
+      if (!coletadosPorLoja[p.loja]) coletadosPorLoja[p.loja] = 0;
+      coletadosPorLoja[p.loja] += 1;
+    });
+
+    const produtosParaExportar = produtosLidos.map((p) => ({
+      ...p,
+      QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
+      QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
+    }));
+
+    // Converte para CSV
+    const header = Object.keys(produtosParaExportar[0]).join(';');
+    const csvRows = produtosParaExportar.map(p =>
+      Object.values(p).map(v => `"${v}"`).join(';')
+    );
+    const csvContent = [header, ...csvRows].join('\n');
+
+    const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.csv`;
+
+    // Salva no dispositivo
+    if (Capacitor.getPlatform() === 'android') {
+      await Filesystem.writeFile({
+        path: nomeArquivo,
+        data: csvContent,
+        directory: Directory.ExternalStorage,
+        encoding: Encoding.UTF8, // CSV é texto, UTF8 funciona
+      });
+    } else {
+      await Filesystem.writeFile({
+        path: nomeArquivo,
+        data: csvContent,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8,
+      });
+    }
+
+    await Dialog.alert({
+      title: 'Sucesso ✅',
+      message: 'Arquivo CSV exportado com sucesso!',
+    });
+  } catch (error) {
+    console.error('Erro ao exportar CSV:', error);
+    await Dialog.alert({
+      title: 'Erro ❌',
+      message: 'Falha ao exportar CSV: ' + error.message,
+    });
+  }
+};
 
 
 const handleExportarExcel = async () => {
@@ -660,7 +733,7 @@ const handleExportarExcel = async () => {
         <div style={{ marginTop: 40, textAlign: 'center' }}>
           <h3> {produtosLidos.length} produto(s) analisado(s)</h3>
           <button
-            onClick={handleExportarExcel}
+            onClick={handleExportarCSV}
             style={{
               padding: '10px 20px',
               fontSize: '16px',

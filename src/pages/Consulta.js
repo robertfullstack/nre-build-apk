@@ -14,7 +14,7 @@ import { Capacitor } from '@capacitor/core';
 
 
 
-import { Permissions } from '@capacitor/permissions';
+// import { Permissions } from '@capacitor/permissions';
 
 export default function Consulta() {
 const [mensagem, setMensagem] = useState('');

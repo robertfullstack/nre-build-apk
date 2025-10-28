@@ -186,40 +186,39 @@ setProdutosLidos((prev) => {
   };
 
   // ➕ Adicionar produto não encontrado
-  const handleAdicionarNaoEncontrado = () => {
-    if (!novoProduto.loja.trim() || !novoProduto.descricao.trim()) {
+const handleAdicionarNaoEncontrado = () => {
+  if (!novoProduto.loja.trim() || !novoProduto.descricao.trim()) {
     exibirMensagem('⚠️ Preencha os campos de loja e descrição!', 'warning');
+    return;
+  }
 
-      return;
-    }
-
- const registro = {
-  nome: usuarioInfo.nome,
-  lojaInventariada: usuarioInfo.lojaInventariada,
-  setor, // 🆕 adiciona o setor
-  LojaBanco: novoProduto.loja,
-  code: ultimoCodigoLido || codigoBusca.trim(),
-  DescricaoBanco: novoProduto.descricao,
-  status: 'Não encontrado',
-  observacao: observacao,
-    DescricaoManual: maisSobreProduto, // ✅ novo campo
-  datahoraconsulta: gerarDataHora(),
-};
-setMaisSobreProduto(''); // limpa após adicionar
-
-
-    setProdutosLidos((prev) => {
-      const novaLista = [...prev, registro];
-      localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
-      return novaLista;
-    });
-
-    setProdutoEncontrado(null);
-    setNovoProduto({ loja: '', descricao: '' });
-    setCodigoBusca('');
-    setObservacao('');
-    inputRef.current.focus();
+  const registro = {
+    nome: usuarioInfo.nome,
+    lojaInventariada: usuarioInfo.lojaInventariada,
+    setor,
+    LojaBanco: novoProduto.loja,
+    code: ultimoCodigoLido || codigoBusca.trim(),
+    DescricaoBanco: '', // ✅ vazio
+    status: 'Não encontrado',
+    observacao: observacao,
+    DescricaoManual: novoProduto.descricao, // ✅ coloca aqui a descrição digitada
+    datahoraconsulta: gerarDataHora(),
   };
+
+  setMaisSobreProduto(''); // limpa após adicionar
+
+  setProdutosLidos((prev) => {
+    const novaLista = [...prev, registro];
+    localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
+    return novaLista;
+  });
+
+  setProdutoEncontrado(null);
+  setNovoProduto({ loja: '', descricao: '' });
+  setCodigoBusca('');
+  setObservacao('');
+  inputRef.current.focus();
+};
 
 async function pedirPermissaoEscrita() {
   // Android ou outras plataformas

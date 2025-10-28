@@ -248,57 +248,66 @@ const handleExportarCSV = async () => {
   }
 
   try {
-    // Organiza dados
-// Organiza dados
-const quantidadePorLoja = {};
-produtos.forEach((p) => {
-  const loja = p.loja.trim().toLowerCase(); // normaliza
-  if (!quantidadePorLoja[loja]) quantidadePorLoja[loja] = 0;
-  quantidadePorLoja[loja] += 1;
-});
+    // Quantidade total por loja
+    const quantidadePorLoja = {};
+    produtos.forEach((p) => {
+      const loja = p.loja?.trim().toLowerCase() || '';
+      if (!quantidadePorLoja[loja]) quantidadePorLoja[loja] = 0;
+      quantidadePorLoja[loja] += 1;
+    });
 
-const coletadosPorLoja = {};
-produtosLidos.forEach((p) => {
-  const loja = p.LojaBanco?.trim().toLowerCase() || ''; // normaliza
-  if (!coletadosPorLoja[loja]) coletadosPorLoja[loja] = 0;
-  coletadosPorLoja[loja] += 1;
-});
+    const coletadosPorLoja = {};
+    produtosLidos.forEach((p) => {
+      const loja = p.LojaBanco?.trim().toLowerCase() || '';
+      if (!coletadosPorLoja[loja]) coletadosPorLoja[loja] = 0;
+      coletadosPorLoja[loja] += 1;
+    });
 
-const produtosParaExportar = produtosLidos.map((p) => {
-  const loja = p.LojaBanco?.trim().toLowerCase() || '';
-  return {
-    ...p,
-    QtdeTotalBase: quantidadePorLoja[loja] || 0,
-    QtdeTotalColetada: coletadosPorLoja[loja] || 0,
-  };
-});
+    // Definindo colunas fixas para evitar desalinhamento
+    const colunas = [
+      'nome',
+      'lojaInventariada',
+      'setor',
+      'LojaBanco',
+      'code',
+      'DescricaoBanco',
+      'DescricaoManual',
+      'status',
+      'observacao',
+      'datahoraconsulta',
+      'QtdeTotalBase',
+      'QtdeTotalColetada',
+    ];
 
-   
-    // Converte para CSV
-    const header = Object.keys(produtosParaExportar[0]).join(';');
-    const csvRows = produtosParaExportar.map(p =>
-      Object.values(p).map(v => `"${v}"`).join(';')
+    const produtosParaExportar = produtosLidos.map((p) => {
+      const loja = p.LojaBanco?.trim().toLowerCase() || '';
+      return {
+        ...p,
+        DescricaoManual: p.DescricaoManual || '', // garante campo mesmo vazio
+        observacao: p.observacao || '',
+        QtdeTotalBase: quantidadePorLoja[loja] || 0,
+        QtdeTotalColetada: coletadosPorLoja[loja] || 0,
+      };
+    });
+
+    // Converte para CSV com colunas fixas
+    const header = colunas.join(';');
+    const csvRows = produtosParaExportar.map((p) =>
+      colunas.map((col) => `"${p[col] || ''}"`).join(';')
     );
-    const csvContent = [header, ...csvRows].join('\n');
 
+    const csvContent = [header, ...csvRows].join('\n');
     const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.csv`;
 
-    // Salva no dispositivo
-    if (Capacitor.getPlatform() === 'android') {
-      await Filesystem.writeFile({
-        path: nomeArquivo,
-        data: csvContent,
-        directory: Directory.ExternalStorage,
-        encoding: Encoding.UTF8, // CSV é texto, UTF8 funciona
-      });
-    } else {
-      await Filesystem.writeFile({
-        path: nomeArquivo,
-        data: csvContent,
-        directory: Directory.Documents,
-        encoding: Encoding.UTF8,
-      });
-    }
+    await Filesystem.writeFile({
+      path: nomeArquivo,
+      data: csvContent,
+      directory:
+        Capacitor.getPlatform() === 'android'
+          ? Directory.ExternalStorage
+          : Directory.Documents,
+      encoding: Encoding.UTF8,
+    });
 
     await Dialog.alert({
       title: 'Sucesso ✅',

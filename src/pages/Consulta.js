@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { PermissionsAndroid, Platform } from 'react-native';
+
 
 
 // import { Filesystem, Directory } from '@capacitor/filesystem';

@@ -7,7 +7,10 @@ import * as XLSX from 'xlsx';
 
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 // import { PermissionsAndroid, Platform } from 'react-native';
+
+
 import { Dialog } from '@capacitor/dialog';
+import { Capacitor } from '@capacitor/core';
 
 
 
@@ -224,16 +227,6 @@ const handleExportarExcel = async () => {
     return;
   }
 
-  // 🔒 Solicita permissão de armazenamento antes de salvar
-  const permissao = await Permissions.request({ name: 'storage' });
-  if (permissao.state !== 'granted') {
-    await Dialog.alert({
-      title: 'Permissão necessária',
-      message: 'O app precisa de permissão para salvar o arquivo Excel.',
-    });
-    return;
-  }
-
   try {
     // Organiza dados
     const quantidadePorLoja = {};
@@ -259,25 +252,24 @@ const handleExportarExcel = async () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
 
-    // Converte para base64
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
     const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.xlsx`;
 
-    try {
-      // 🗂️ Tenta salvar no diretório público (Documents)
+    // Detecta plataforma
+    if (Capacitor.getPlatform() === 'android') {
+      // Salva diretamente no diretório público de Downloads
+      await Filesystem.writeFile({
+        path: nomeArquivo,
+        data: excelBuffer,
+        directory: Directory.ExternalStorage, // público
+        encoding: Encoding.UTF8,
+      });
+    } else {
+      // Para iOS ou Web, salva no diretório padrão
       await Filesystem.writeFile({
         path: nomeArquivo,
         data: excelBuffer,
         directory: Directory.Documents,
-        encoding: Encoding.UTF8,
-      });
-    } catch (err) {
-      console.warn('Erro ao salvar em Documents:', err.message);
-      // 📂 Se falhar, salva no diretório interno do app
-      await Filesystem.writeFile({
-        path: nomeArquivo,
-        data: excelBuffer,
-        directory: Directory.Data,
         encoding: Encoding.UTF8,
       });
     }

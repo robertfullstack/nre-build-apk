@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 
 
 // import { Filesystem, Directory } from '@capacitor/filesystem';
-// import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx';
 // import { Dialog } from '@capacitor/dialog';
 
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';

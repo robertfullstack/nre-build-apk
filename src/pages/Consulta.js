@@ -222,17 +222,16 @@ setMaisSobreProduto(''); // limpa após adicionar
   };
 
 async function pedirPermissaoEscrita() {
+  // Android ou outras plataformas
   if (Capacitor.getPlatform() === 'android') {
-    try {
-      // Para Android >= 10, normalmente não precisa de permissão extra se usar Directory.Documents
-      return true;
-    } catch (err) {
-      console.warn(err);
-      return false;
-    }
+    // Para Android >= 10, normalmente não é necessário solicitar permissão extra
+    return true;
   }
-  return true; // iOS ou Web
+
+  // iOS ou Web não precisam de permissão
+  return true;
 }
+
 
 
 

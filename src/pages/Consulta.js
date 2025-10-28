@@ -5,9 +5,8 @@ import React, { useState, useRef, useEffect } from 'react';
 // import * as XLSX from 'xlsx';
 // import { Dialog } from '@capacitor/dialog';
 
-
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
-import { PermissionsAndroid, Platform } from 'react-native';
+// import { PermissionsAndroid, Platform } from 'react-native';
 import { Dialog } from '@capacitor/dialog';
 
 
@@ -216,49 +215,62 @@ setMaisSobreProduto(''); // limpa após adicionar
     inputRef.current.focus();
   };
 
-  // 📤 Exportar Excel
-async function handleExportarExcel() {
+
+const handleExportarExcel = async () => {
+  if (produtosLidos.length === 0) {
+    exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
+    return;
+  }
+
   try {
-    if (Platform.OS === 'android') {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-        {
-          title: 'Permissão de Armazenamento',
-          message: 'O app precisa acessar o armazenamento para salvar o arquivo Excel.',
-          buttonPositive: 'Permitir',
-        }
-      );
+    // Organiza dados
+    const quantidadePorLoja = {};
+    produtos.forEach((p) => {
+      if (!quantidadePorLoja[p.loja]) quantidadePorLoja[p.loja] = 0;
+      quantidadePorLoja[p.loja] += 1;
+    });
 
-      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-        await Dialog.alert({
-          title: 'Permissão negada',
-          message: 'Não foi possível salvar o arquivo sem permissão de armazenamento.',
-        });
-        return;
-      }
-    }
+    const coletadosPorLoja = {};
+    produtosLidos.forEach((p) => {
+      if (!coletadosPorLoja[p.loja]) coletadosPorLoja[p.loja] = 0;
+      coletadosPorLoja[p.loja] += 1;
+    });
 
-    // --- seu código de criação do Excel ---
+    const produtosParaExportar = produtosLidos.map((p) => ({
+      ...p,
+      QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
+      QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
+    }));
+
+    // Cria Excel
+    const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
+
+    // Converte para base64
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+    const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.xlsx`;
+
+    // Tenta salvar no armazenamento externo
     await Filesystem.writeFile({
       path: nomeArquivo,
       data: excelBuffer,
-      directory: Directory.ExternalStorage,
+      directory: Directory.Documents,
       encoding: Encoding.UTF8,
     });
 
     await Dialog.alert({
-      title: 'Sucesso',
-      message: 'Excel exportado com sucesso!',
+      title: 'Sucesso ✅',
+      message: 'Arquivo Excel exportado com sucesso!',
     });
-
   } catch (error) {
     console.error('Erro ao exportar Excel:', error);
     await Dialog.alert({
-      title: 'Erro',
-      message: '❌ Erro ao exportar Excel: ' + error.message,
+      title: 'Erro ❌',
+      message: 'Falha ao exportar Excel: ' + error.message,
     });
   }
-}
+};
 
   // 🧹 Limpar tudo
   const limparBase = () => {

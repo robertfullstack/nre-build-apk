@@ -307,77 +307,7 @@ const handleExportarCSV = async () => {
 };
 
 
-const handleExportarExcel = async () => {
-  if (produtosLidos.length === 0) {
-    exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
-    return;
-  }
 
-  const temPermissao = await pedirPermissaoEscrita();
-  if (!temPermissao) {
-    await Dialog.alert({
-      title: 'Permissão negada',
-      message: 'Não foi possível salvar o arquivo sem permissão.',
-    });
-    return;
-  }
-
-  try {
-    // Organiza dados para Excel
-    const quantidadePorLoja = {};
-    produtos.forEach((p) => {
-      if (!quantidadePorLoja[p.loja]) quantidadePorLoja[p.loja] = 0;
-      quantidadePorLoja[p.loja] += 1;
-    });
-
-    const coletadosPorLoja = {};
-    produtosLidos.forEach((p) => {
-      if (!coletadosPorLoja[p.loja]) coletadosPorLoja[p.loja] = 0;
-      coletadosPorLoja[p.loja] += 1;
-    });
-
-    const produtosParaExportar = produtosLidos.map((p) => ({
-      ...p,
-      QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
-      QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
-    }));
-
-    // Cria Excel em Base64
-    const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-    const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.xlsx`;
-
-    // Salva no dispositivo
-    if (Capacitor.getPlatform() === 'android') {
-      await Filesystem.writeFile({
-        path: nomeArquivo,
-        data: excelBuffer,
-        directory: Directory.ExternalStorage,
-        encoding: Encoding.BASE64, // ✅ Base64 para arquivo binário
-      });
-    } else {
-      await Filesystem.writeFile({
-        path: nomeArquivo,
-        data: excelBuffer,
-        directory: Directory.Documents,
-        encoding: Encoding.BASE64, // ✅ Base64 para iOS/Web
-      });
-    }
-
-    await Dialog.alert({
-      title: 'Sucesso ✅',
-      message: 'Arquivo Excel exportado com sucesso!',
-    });
-  } catch (error) {
-    console.error('Erro ao exportar Excel:', error);
-    await Dialog.alert({
-      title: 'Erro ❌',
-      message: 'Falha ao exportar Excel: ' + error.message,
-    });
-  }
-};
 
 
   // 🧹 Limpar tudo

@@ -273,18 +273,7 @@ const produtosParaExportar = produtosLidos.map((p) => {
   };
 });
 
-    const coletadosPorLoja = {};
-    produtosLidos.forEach((p) => {
-      if (!coletadosPorLoja[p.loja]) coletadosPorLoja[p.loja] = 0;
-      coletadosPorLoja[p.loja] += 1;
-    });
-
-    const produtosParaExportar = produtosLidos.map((p) => ({
-      ...p,
-      QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
-      QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
-    }));
-
+   
     // Converte para CSV
     const header = Object.keys(produtosParaExportar[0]).join(';');
     const csvRows = produtosParaExportar.map(p =>

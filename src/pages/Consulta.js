@@ -160,7 +160,7 @@ if (produto) {
     DescricaoBanco: produto.descricao,
     status,
     observacao: '',
-    datahoraconsultaNewteste: gerarDataHora(),
+    datahoraconsulta: gerarDataHora(),
       DescricaoManual: maisSobreProduto, // ✅ novo campo
 
   };
@@ -203,7 +203,7 @@ setProdutosLidos((prev) => {
   status: 'Não encontrado',
   observacao: observacao,
     DescricaoManual: maisSobreProduto, // ✅ novo campo
-  datahoraconsultaNewteste: gerarDataHora(),
+  datahoraconsulta: gerarDataHora(),
 };
 setMaisSobreProduto(''); // limpa após adicionar
 
@@ -249,11 +249,29 @@ const handleExportarCSV = async () => {
 
   try {
     // Organiza dados
-    const quantidadePorLoja = {};
-    produtos.forEach((p) => {
-      if (!quantidadePorLoja[p.loja]) quantidadePorLoja[p.loja] = 0;
-      quantidadePorLoja[p.loja] += 1;
-    });
+// Organiza dados
+const quantidadePorLoja = {};
+produtos.forEach((p) => {
+  const loja = p.loja.trim().toLowerCase(); // normaliza
+  if (!quantidadePorLoja[loja]) quantidadePorLoja[loja] = 0;
+  quantidadePorLoja[loja] += 1;
+});
+
+const coletadosPorLoja = {};
+produtosLidos.forEach((p) => {
+  const loja = p.LojaBanco?.trim().toLowerCase() || ''; // normaliza
+  if (!coletadosPorLoja[loja]) coletadosPorLoja[loja] = 0;
+  coletadosPorLoja[loja] += 1;
+});
+
+const produtosParaExportar = produtosLidos.map((p) => {
+  const loja = p.LojaBanco?.trim().toLowerCase() || '';
+  return {
+    ...p,
+    QtdeTotalBase: quantidadePorLoja[loja] || 0,
+    QtdeTotalColetada: coletadosPorLoja[loja] || 0,
+  };
+});
 
     const coletadosPorLoja = {};
     produtosLidos.forEach((p) => {

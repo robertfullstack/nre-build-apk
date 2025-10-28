@@ -234,12 +234,12 @@ async function pedirPermissaoEscrita() {
 
 
 
-
 const handleExportarExcel = async () => {
   if (produtosLidos.length === 0) {
     exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
     return;
   }
+
   const temPermissao = await pedirPermissaoEscrita();
   if (!temPermissao) {
     await Dialog.alert({
@@ -248,8 +248,9 @@ const handleExportarExcel = async () => {
     });
     return;
   }
+
   try {
-    // Organiza dados
+    // Organiza dados para Excel
     const quantidadePorLoja = {};
     produtos.forEach((p) => {
       if (!quantidadePorLoja[p.loja]) quantidadePorLoja[p.loja] = 0;
@@ -268,30 +269,27 @@ const handleExportarExcel = async () => {
       QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
     }));
 
-    // Cria Excel
+    // Cria Excel em Base64
     const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
-
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
     const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.xlsx`;
 
-    // Detecta plataforma
+    // Salva no dispositivo
     if (Capacitor.getPlatform() === 'android') {
-      // Salva diretamente no diretório público de Downloads
       await Filesystem.writeFile({
         path: nomeArquivo,
         data: excelBuffer,
-        directory: Directory.ExternalStorage, // público
-        encoding: Encoding.UTF8,
+        directory: Directory.ExternalStorage,
+        encoding: Encoding.BASE64, // ✅ Base64 para arquivo binário
       });
     } else {
-      // Para iOS ou Web, salva no diretório padrão
       await Filesystem.writeFile({
         path: nomeArquivo,
         data: excelBuffer,
         directory: Directory.Documents,
-        encoding: Encoding.UTF8,
+        encoding: Encoding.BASE64, // ✅ Base64 para iOS/Web
       });
     }
 
@@ -307,6 +305,7 @@ const handleExportarExcel = async () => {
     });
   }
 };
+
 
   // 🧹 Limpar tudo
   const limparBase = () => {

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { PermissionsAndroid, Platform } from 'react-native';
 
 
 // import { Filesystem, Directory } from '@capacitor/filesystem';
@@ -220,13 +221,42 @@ setMaisSobreProduto(''); // limpa após adicionar
     inputRef.current.focus();
   };
 
+async function pedirPermissaoEscrita() {
+  if (Platform.OS === 'android') {
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Permissão de Armazenamento',
+          message: 'O app precisa acessar o armazenamento para salvar arquivos.',
+          buttonNeutral: 'Perguntar depois',
+          buttonNegative: 'Cancelar',
+          buttonPositive: 'OK',
+        }
+      );
+      return granted === PermissionsAndroid.RESULTS.GRANTED;
+    } catch (err) {
+      console.warn(err);
+      return false;
+    }
+  }
+  return true; // iOS não precisa
+}
+
 
 const handleExportarExcel = async () => {
   if (produtosLidos.length === 0) {
     exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
     return;
   }
-
+  const temPermissao = await pedirPermissaoEscrita();
+  if (!temPermissao) {
+    await Dialog.alert({
+      title: 'Permissão negada',
+      message: 'Não foi possível salvar o arquivo sem permissão.',
+    });
+    return;
+  }
   try {
     // Organiza dados
     const quantidadePorLoja = {};

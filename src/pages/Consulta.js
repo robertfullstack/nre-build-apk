@@ -222,26 +222,18 @@ setMaisSobreProduto(''); // limpa após adicionar
   };
 
 async function pedirPermissaoEscrita() {
-  if (Platform.OS === 'android') {
+  if (Capacitor.getPlatform() === 'android') {
     try {
-      const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-        {
-          title: 'Permissão de Armazenamento',
-          message: 'O app precisa acessar o armazenamento para salvar arquivos.',
-          buttonNeutral: 'Perguntar depois',
-          buttonNegative: 'Cancelar',
-          buttonPositive: 'OK',
-        }
-      );
-      return granted === PermissionsAndroid.RESULTS.GRANTED;
+      // Para Android >= 10, normalmente não precisa de permissão extra se usar Directory.Documents
+      return true;
     } catch (err) {
       console.warn(err);
       return false;
     }
   }
-  return true; // iOS não precisa
+  return true; // iOS ou Web
 }
+
 
 
 const handleExportarExcel = async () => {

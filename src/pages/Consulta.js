@@ -3,7 +3,8 @@ import React, { useState, useRef, useEffect } from 'react';
 
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import * as XLSX from 'xlsx';
-import { Alert } from 'react-native';
+import { Dialog } from '@capacitor/dialog';
+
 
 
 export default function Consulta() {
@@ -211,41 +212,43 @@ setMaisSobreProduto(''); // limpa após adicionar
   };
 
   // 📤 Exportar Excel
+
 const handleExportarExcel = async () => {
   if (produtosLidos.length === 0) {
-    exibirMensagem('⚠️ Nenhum produto lido para exportar!', 'warning');
+    await Dialog.alert({
+      title: '⚠️ Atenção',
+      message: 'Nenhum produto lido para exportar!',
+    });
     return;
   }
 
   try {
-    // Agrupa quantidade total por loja
+    // Agrupa quantidade por loja
     const quantidadePorLoja = {};
     produtos.forEach((p) => {
       quantidadePorLoja[p.loja] = (quantidadePorLoja[p.loja] || 0) + 1;
     });
 
-    // Agrupa quantidade coletada por loja
+    // Agrupa coletados
     const coletadosPorLoja = {};
     produtosLidos.forEach((p) => {
       coletadosPorLoja[p.loja] = (coletadosPorLoja[p.loja] || 0) + 1;
     });
 
-    // Prepara os dados finais
+    // Monta dados
     const produtosParaExportar = produtosLidos.map((p) => ({
       ...p,
       QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
       QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
     }));
 
-    // Cria a planilha
+    // Cria planilha
     const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
 
-    // Converte para base64
+    // Gera base64
     const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-
-    // Nome do arquivo
     const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.xlsx`;
 
     // Salva no diretório de Documentos
@@ -255,14 +258,17 @@ const handleExportarExcel = async () => {
       directory: Directory.Documents,
     });
 
-    // Mensagem de sucesso
-    Alert.alert('✅ Sucesso', 'Arquivo Excel exportado com sucesso para Documentos!');
+    await Dialog.alert({
+      title: '✅ Sucesso',
+      message: 'Arquivo Excel exportado com sucesso para Documentos!',
+    });
   } catch (error) {
-    // Exibe erro detalhado no app
-    Alert.alert('❌ Erro ao exportar Excel', `Detalhes: ${error.message || error}`);
+    await Dialog.alert({
+      title: '❌ Erro ao exportar Excel',
+      message: error.message || 'Erro desconhecido ao salvar o arquivo.',
+    });
   }
 };
-
 
 
   // 🧹 Limpar tudo

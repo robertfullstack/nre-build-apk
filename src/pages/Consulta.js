@@ -1,8 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 
 
-import { Filesystem, Directory } from '@capacitor/filesystem';
-import * as XLSX from 'xlsx';
+// import { Filesystem, Directory } from '@capacitor/filesystem';
+// import * as XLSX from 'xlsx';
+// import { Dialog } from '@capacitor/dialog';
+
+
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { PermissionsAndroid, Platform } from 'react-native';
 import { Dialog } from '@capacitor/dialog';
 
 
@@ -212,64 +217,48 @@ setMaisSobreProduto(''); // limpa após adicionar
   };
 
   // 📤 Exportar Excel
-
-const handleExportarExcel = async () => {
-  if (produtosLidos.length === 0) {
-    await Dialog.alert({
-      title: '⚠️ Atenção',
-      message: 'Nenhum produto lido para exportar!',
-    });
-    return;
-  }
-
+async function handleExportarExcel() {
   try {
-    // Agrupa quantidade por loja
-    const quantidadePorLoja = {};
-    produtos.forEach((p) => {
-      quantidadePorLoja[p.loja] = (quantidadePorLoja[p.loja] || 0) + 1;
-    });
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+        {
+          title: 'Permissão de Armazenamento',
+          message: 'O app precisa acessar o armazenamento para salvar o arquivo Excel.',
+          buttonPositive: 'Permitir',
+        }
+      );
 
-    // Agrupa coletados
-    const coletadosPorLoja = {};
-    produtosLidos.forEach((p) => {
-      coletadosPorLoja[p.loja] = (coletadosPorLoja[p.loja] || 0) + 1;
-    });
+      if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+        await Dialog.alert({
+          title: 'Permissão negada',
+          message: 'Não foi possível salvar o arquivo sem permissão de armazenamento.',
+        });
+        return;
+      }
+    }
 
-    // Monta dados
-    const produtosParaExportar = produtosLidos.map((p) => ({
-      ...p,
-      QtdeTotalBase: quantidadePorLoja[p.loja] || 0,
-      QtdeTotalColetada: coletadosPorLoja[p.loja] || 0,
-    }));
-
-    // Cria planilha
-    const ws = XLSX.utils.json_to_sheet(produtosParaExportar);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Produtos Lidos');
-
-    // Gera base64
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
-    const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.xlsx`;
-
-    // Salva no diretório de Documentos
+    // --- seu código de criação do Excel ---
     await Filesystem.writeFile({
       path: nomeArquivo,
       data: excelBuffer,
-      directory: Directory.Documents,
+      directory: Directory.ExternalStorage,
+      encoding: Encoding.UTF8,
     });
 
     await Dialog.alert({
-      title: '✅ Sucesso',
-      message: 'Arquivo Excel exportado com sucesso para Documentos!',
+      title: 'Sucesso',
+      message: 'Excel exportado com sucesso!',
     });
+
   } catch (error) {
+    console.error('Erro ao exportar Excel:', error);
     await Dialog.alert({
-      title: '❌ Erro ao exportar Excel',
-      message: error.message || 'Erro desconhecido ao salvar o arquivo.',
+      title: 'Erro',
+      message: '❌ Erro ao exportar Excel: ' + error.message,
     });
   }
-};
-
+}
 
   // 🧹 Limpar tudo
   const limparBase = () => {

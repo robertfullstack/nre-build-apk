@@ -29,7 +29,7 @@ function Home() {
         color: '#555',
         pointerEvents: 'none'
       }}>
-        V - 1.1 (Revisão hoje)
+        V - 2.1 (Revisão hoje)
       
       {/* 23/10/2025 - Adicionado mais sobre o produto */}
       </div>

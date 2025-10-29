@@ -505,6 +505,7 @@ const handleExportarCSV = async () => {
             </button>
 
 {/* 📝 Campo de "Mais sobre o produto" */}
+{/* 📝 Campo de "Mais sobre o produto" */}
 <textarea
   placeholder="Mais sobre o produto..."
   value={maisSobreProduto}
@@ -519,26 +520,37 @@ const handleExportarCSV = async () => {
     border: '1px solid #ccc',
   }}
 />
+
 <button
   onClick={() => {
     if (!produtoEncontrado) return;
     const codigo = produtoEncontrado.code || ultimoCodigoLido;
+
     setProdutosLidos((prev) => {
-      const novaLista = prev.map((p) =>
-        p.code === codigo ? { ...p, maisSobreProduto } : p
+      const novaLista = prev.map((item) =>
+        item.code === codigo
+          ? { ...item, observacao: maisSobreProduto }
+          : item
       );
-      localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
       return novaLista;
     });
-    exibirMensagem('📝 Campo "Mais sobre o produto" salvo com sucesso!', 'success');
+
+    // 🔁 Reinicia o campo "Mais sobre o produto"
+    setMaisSobreProduto('');
   }}
   style={{
-    marginTop: 15,
-
+    marginTop: 10,
+    backgroundColor: '#007bff',
+    color: '#fff',
+    padding: '8px 12px',
+    border: 'none',
+    borderRadius: 5,
+    cursor: 'pointer',
   }}
 >
-  Salvar Descrição
+  Salvar observação
 </button>
+
 
 
           </div>

@@ -521,35 +521,6 @@ const handleExportarCSV = async () => {
   }}
 /> */}
 
-<button
-  onClick={() => {
-    if (!produtoEncontrado) return;
-    const codigo = produtoEncontrado.code || ultimoCodigoLido;
-
-    setProdutosLidos((prev) => {
-      const novaLista = prev.map((item) =>
-        item.code === codigo
-          ? { ...item, observacao: maisSobreProduto }
-          : item
-      );
-      return novaLista;
-    });
-
-    // 🔁 Reinicia o campo "Mais sobre o produto"
-    setMaisSobreProduto('');
-  }}
-  style={{
-    marginTop: 10,
-    backgroundColor: '#007bff',
-    color: '#fff',
-    padding: '8px 12px',
-    border: 'none',
-    borderRadius: 5,
-    cursor: 'pointer',
-  }}
->
-  Salvar observação
-</button>
 
 
 

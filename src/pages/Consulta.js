@@ -480,7 +480,12 @@ const handleExportarCSV = async () => {
           pattern="[0-9]*"
           placeholder="Digite o código de barras"
           value={codigoBusca}
-          onChange={(e) => setCodigoBusca(e.target.value)}
+onChange={(e) => {
+  const valor = e.target.value;
+  const valorTratado = valor.replace(/^0+/, ""); // remove zeros iniciais
+  setCodigoBusca(valorTratado);
+}}
+
           style={{
             padding: '8px',
             fontSize: '16px',

@@ -128,62 +128,77 @@ const [showFullScreenWarning, setShowFullScreenWarning] = useState(false);
   };
 
   // 🔍 Buscar produto
-  const handleBuscar = () => {
-if (!codigoBusca.trim()) {
-  exibirMensagem('Digite um código de barras!', 'error');
-  return;
-}
-
-    const codigo = codigoBusca.trim();
-    setUltimoCodigoLido(codigo);
-    setObservacao(''); // limpa o campo ao buscar
-
-    const produto = produtos.find((p) => p.code === codigo);
-if (produto) {
-  let status = 'Encontrado';
-
-  if (
-    usuarioInfo.lojaInventariada.trim() &&
-    produto.loja.trim() !== usuarioInfo.lojaInventariada.trim()
-  ) {
-    status = 'Divergente';
+const handleBuscar = () => {
+  if (!codigoBusca.trim()) {
+    exibirMensagem('Digite um código de barras!', 'error');
+    return;
   }
 
-  setProdutoEncontrado({ ...produto, status });
+  const codigo = codigoBusca.trim();
+  setUltimoCodigoLido(codigo);
 
-  const registro = {
-    nome: usuarioInfo.nome,
-    lojaInventariada: usuarioInfo.lojaInventariada,
-    setor,
-    LojaBanco: produto.loja,
-    code: codigo,
-    DescricaoBanco: produto.descricao,
-    status,
-    observacao: '',
-    datahoraconsulta: gerarDataHora(),
-      DescricaoManual: maisSobreProduto, // ✅ novo campo
+  const produto = produtos.find((p) => p.code === codigo);
 
-  };
-setProdutosLidos((prev) => {
-  const jaExiste = prev.some((p) => p.code === codigo);
-  if (jaExiste) {
-    // ⚠️ Mostrar modal em tela cheia
-    setShowFullScreenWarning(true); // cria esse state no seu componente
+  if (produto) {
+    let status = 'Encontrado';
 
-    return prev; // não adiciona de novo
+    if (
+      usuarioInfo.lojaInventariada.trim() &&
+      produto.loja.trim() !== usuarioInfo.lojaInventariada.trim()
+    ) {
+      status = 'Divergente';
+    }
+
+    // ✅ verifica se já existe registro desse produto antes de definir campos
+    const registroExistente = produtosLidos.find((p) => p.code === codigo);
+
+    // ✅ define produto encontrado
+    setProdutoEncontrado({ ...produto, status });
+
+    // ✅ carrega observação e descrição manual se existir registro
+    if (registroExistente) {
+      setObservacao(registroExistente.observacao || '');
+      setMaisSobreProduto(registroExistente.DescricaoManual || '');
+    } else {
+      setObservacao('');
+      setMaisSobreProduto('');
+    }
+
+    // ✅ cria novo registro apenas se ele ainda não existia
+    setProdutosLidos((prev) => {
+      const jaExiste = prev.some((p) => p.code === codigo);
+      if (jaExiste) {
+        setShowFullScreenWarning(true);
+        return prev;
+      }
+
+      const registro = {
+        nome: usuarioInfo.nome,
+        lojaInventariada: usuarioInfo.lojaInventariada,
+        setor,
+        LojaBanco: produto.loja,
+        code: codigo,
+        DescricaoBanco: produto.descricao,
+        status,
+        observacao: '',
+        DescricaoManual: '',
+        datahoraconsulta: gerarDataHora(),
+      };
+
+      const novaLista = [...prev, registro];
+      localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
+      return novaLista;
+    });
+
+  } else {
+    setProdutoEncontrado(false);
+    setObservacao('');
+    setMaisSobreProduto('');
   }
-  const novaLista = [...prev, registro];
-  localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
-  return novaLista;
-});
-} else {
-  setProdutoEncontrado(false);
-}
 
-
-    setCodigoBusca('');
-    inputRef.current.focus();
-  };
+  setCodigoBusca('');
+  inputRef.current?.focus();
+};
 
   // ➕ Adicionar produto não encontrado
 const handleAdicionarNaoEncontrado = () => {
@@ -351,6 +366,22 @@ const handleExportarCSV = async () => {
 
   };
 
+  const handleSalvarDescricaoManual = () => {
+  if (!produtoEncontrado) return;
+  const codigo = produtoEncontrado.code || ultimoCodigoLido;
+
+  setProdutosLidos((prev) => {
+    const novaLista = prev.map((p) =>
+      p.code === codigo ? { ...p, DescricaoManual: maisSobreProduto } : p
+    );
+    localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
+    return novaLista;
+  });
+
+  setMaisSobreProduto('');
+  exibirMensagem('📄 Descrição Manual salva!', 'success');
+};
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 40, textAlign: 'center' }}>
       <h2>Sistema de Consulta de Produto</h2>
@@ -494,40 +525,19 @@ const handleExportarCSV = async () => {
                 border: '1px solid #ccc',
               }}
             />
-         <button
-  onClick={() => {
-    if (!produtoEncontrado) return;
-    const codigo = produtoEncontrado.code || ultimoCodigoLido;
-
-    setProdutosLidos((prev) => {
-      const novaLista = prev.map((item) =>
-        item.code === codigo
-          ? { ...item, DescricaoManual: maisSobreProduto } // ✅ salva no campo certo!
-          : item
-      );
-
-      localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
-      return novaLista;
-    });
-
-    setMaisSobreProduto(''); // 🔁 limpa campo depois
-  }}
-  style={{
-    marginTop: 10,
-    backgroundColor: '#007bff',
-    color: '#fff',
-    padding: '8px 12px',
-    border: 'none',
-    borderRadius: 5,
-    cursor: 'pointer',
-  }}
->
-  Salvar Descrição Manual
-</button>
+            <button
+              onClick={handleSalvarObservacao}
+              style={{
+                marginTop: 15,
+          
+              }}
+            >
+              Salvar Observação
+            </button>
 
   {/* 📝 Campo de "Mais sobre o produto" */}
 
-  <textarea
+<textarea
   placeholder="Mais sobre o produto..."
   value={maisSobreProduto}
   onChange={(e) => setMaisSobreProduto(e.target.value)}
@@ -540,7 +550,17 @@ const handleExportarCSV = async () => {
     borderRadius: 5,
     border: '1px solid #ccc',
   }}
-  /> 
+/>
+
+<button
+  onClick={handleSalvarDescricaoManual}
+  style={{ marginTop: 10 }}
+>
+  Salvar Descrição Manual
+</button>
+
+
+
 
 <button
   onClick={() => {

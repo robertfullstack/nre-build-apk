@@ -262,22 +262,20 @@ const handleExportarCSV = async () => {
   }
 
   try {
-    // Quantidade total por loja
+    // ---------- CONTAGEM POR LOJA ----------
     const quantidadePorLoja = {};
     produtos.forEach((p) => {
       const loja = p.loja?.trim().toLowerCase() || '';
-      if (!quantidadePorLoja[loja]) quantidadePorLoja[loja] = 0;
-      quantidadePorLoja[loja] += 1;
+      quantidadePorLoja[loja] = (quantidadePorLoja[loja] || 0) + 1;
     });
 
     const coletadosPorLoja = {};
     produtosLidos.forEach((p) => {
       const loja = p.LojaBanco?.trim().toLowerCase() || '';
-      if (!coletadosPorLoja[loja]) coletadosPorLoja[loja] = 0;
-      coletadosPorLoja[loja] += 1;
+      coletadosPorLoja[loja] = (coletadosPorLoja[loja] || 0) + 1;
     });
 
-    // Definindo colunas fixas para evitar desalinhamento
+    // ---------- COLUNAS DO CSV PRINCIPAL ----------
     const colunas = [
       'nome',
       'lojaInventariada',
@@ -290,27 +288,45 @@ const handleExportarCSV = async () => {
       'observacao',
       'datahoraconsulta',
       'QtdeTotalBase',
-      'QtdeTotalColetada',
+      'QtdeTotalColetada'
     ];
 
     const produtosParaExportar = produtosLidos.map((p) => {
       const loja = p.LojaBanco?.trim().toLowerCase() || '';
       return {
         ...p,
-        DescricaoManual: p.DescricaoManual || '', // garante campo mesmo vazio
+        DescricaoManual: p.DescricaoManual || '',
         observacao: p.observacao || '',
         QtdeTotalBase: quantidadePorLoja[loja] || 0,
         QtdeTotalColetada: coletadosPorLoja[loja] || 0,
       };
     });
 
-    // Converte para CSV com colunas fixas
+    // ---------- CSV: PRODUTOS COLETADOS ----------
     const header = colunas.join(';');
     const csvRows = produtosParaExportar.map((p) =>
       colunas.map((col) => `"${p[col] || ''}"`).join(';')
     );
 
-    const csvContent = [header, ...csvRows].join('\n');
+    let csvContent = "PRODUTOS COLETADOS\n" + header + "\n" + csvRows.join('\n');
+
+    // ---------- PRODUTOS NÃO COLETADOS ----------
+    const produtosNaoColetados = produtos.filter((p) => {
+      const mesmaLoja =
+        p.loja?.trim().toLowerCase() === usuarioInfo.lojaInventariada?.trim().toLowerCase();
+
+      const foiColetado = produtosLidos.some((lido) => lido.code === p.code);
+
+      return mesmaLoja && !foiColetado;
+    });
+
+    csvContent += `\n\nPRODUTOS NÃO COLETADOS\nLoja;Código;Descrição\n`;
+
+    produtosNaoColetados.forEach((p) => {
+      csvContent += `${p.loja};${p.code};"${p.descricao}"\n`;
+    });
+
+    // ---------- SALVAR ARQUIVO ----------
     const nomeArquivo = `inventario_${usuarioInfo?.nome || 'usuario'}_${Date.now()}.csv`;
 
     await Filesystem.writeFile({
@@ -324,13 +340,13 @@ const handleExportarCSV = async () => {
     });
 
     await Dialog.alert({
-      title: 'Sucesso ✅',
+      title: '✅ Sucesso',
       message: 'Arquivo CSV exportado com sucesso!',
     });
   } catch (error) {
     console.error('Erro ao exportar CSV:', error);
     await Dialog.alert({
-      title: 'Erro ❌',
+      title: '❌ Erro',
       message: 'Falha ao exportar CSV: ' + error.message,
     });
   }
@@ -562,7 +578,7 @@ const handleExportarCSV = async () => {
 
 
 
-<button
+{/* <button
   onClick={() => {
     if (!produtoEncontrado) return;
     const codigo = produtoEncontrado.code || ultimoCodigoLido;
@@ -590,7 +606,7 @@ const handleExportarCSV = async () => {
   }}
 >
   Salvar observação
-</button>
+</button> */}
 
 
 

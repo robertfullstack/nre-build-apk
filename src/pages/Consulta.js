@@ -504,9 +504,9 @@ const handleExportarCSV = async () => {
               Salvar Observação
             </button>
 
-{/* 📝 Campo de "Mais sobre o produto" */}
+  {/* 📝 Campo de "Mais sobre o produto" */}
 
- {/* <textarea
+  <textarea
   placeholder="Mais sobre o produto..."
   value={maisSobreProduto}
   onChange={(e) => setMaisSobreProduto(e.target.value)}
@@ -519,8 +519,37 @@ const handleExportarCSV = async () => {
     borderRadius: 5,
     border: '1px solid #ccc',
   }}
-/> */}
+  /> 
 
+<button
+  onClick={() => {
+    if (!produtoEncontrado) return;
+    const codigo = produtoEncontrado.code || ultimoCodigoLido;
+
+    setProdutosLidos((prev) => {
+      const novaLista = prev.map((item) =>
+        item.code === codigo
+          ? { ...item, observacao: maisSobreProduto }
+          : item
+      );
+      return novaLista;
+    });
+
+    // 🔁 Reinicia o campo "Mais sobre o produto"
+    setMaisSobreProduto('');
+  }}
+  style={{
+    marginTop: 10,
+    backgroundColor: '#007bff',
+    color: '#fff',
+    padding: '8px 12px',
+    border: 'none',
+    borderRadius: 5,
+    cursor: 'pointer',
+  }}
+>
+  Salvar observação
+</button>
 
 
 

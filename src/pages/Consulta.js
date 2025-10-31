@@ -494,15 +494,36 @@ const handleExportarCSV = async () => {
                 border: '1px solid #ccc',
               }}
             />
-            <button
-              onClick={handleSalvarObservacao}
-              style={{
-                marginTop: 15,
-          
-              }}
-            >
-              Salvar Observação
-            </button>
+         <button
+  onClick={() => {
+    if (!produtoEncontrado) return;
+    const codigo = produtoEncontrado.code || ultimoCodigoLido;
+
+    setProdutosLidos((prev) => {
+      const novaLista = prev.map((item) =>
+        item.code === codigo
+          ? { ...item, DescricaoManual: maisSobreProduto } // ✅ salva no campo certo!
+          : item
+      );
+
+      localStorage.setItem('produtosLidos', JSON.stringify(novaLista));
+      return novaLista;
+    });
+
+    setMaisSobreProduto(''); // 🔁 limpa campo depois
+  }}
+  style={{
+    marginTop: 10,
+    backgroundColor: '#007bff',
+    color: '#fff',
+    padding: '8px 12px',
+    border: 'none',
+    borderRadius: 5,
+    cursor: 'pointer',
+  }}
+>
+  Salvar Descrição Manual
+</button>
 
   {/* 📝 Campo de "Mais sobre o produto" */}
 
